@@ -1,6 +1,14 @@
 <template>
   <h1>Events For Good</h1>
   <div class="events">
+    <div class="search-box">
+      <BaseInput
+        v-model="keyword"
+        type="text"
+        label="search..."
+        @input="updateKeyword"
+      />
+    </div>
     <EventCard v-for="event in events" :key="event.id" :event="event" />
     <div class="pagination">
       <router-link
@@ -44,7 +52,8 @@ export default {
   data() {
     return {
       events: null,
-      totalEvents: 0 // <--- Added this to store totalEvents
+      totalEvents: 0, // <--- Added this to store totalEvents
+      keyword: null
     }
   },
 
@@ -62,7 +71,21 @@ export default {
       })
   },
   beforeRouteUpdate(routeTo) {
-    EventService.getEvents(3, parseInt(routeTo.query.page) || 1)
+    var queryFunction
+    if (this.keyword === '') {
+      queryFunction = EventService.getEvents(
+        3,
+        parseInt(routeTo.query.page) || 1
+      )
+    } else {
+      queryFunction = EventService.getEventByKeyword(
+        this.keyword,
+        3,
+        parseInt(routeTo.query.page) || 1
+      )
+    }
+
+    queryFunction
       .then((response) => {
         this.events = response.data // <-----
         this.totalEvents = response.headers['x-total-count'] // <-----
@@ -78,6 +101,26 @@ export default {
 
       // Then check to see if the current page is less than the total pages.
       return this.page < totalPages
+    }
+  },
+  methods: {
+    updateKeyword() {
+      var queryFunction
+      if (this.keyword === '') {
+        queryFunction = EventService.getEvents(3, 1)
+      } else {
+        queryFunction = EventService.getEventByKeyword(this.keyword, 3, 1)
+      }
+      queryFunction
+        .then((res) => {
+          this.events = res.data
+          console.log(this.events)
+          this.totalEvents = res.headers['x-total-count']
+          console.log(this.totalEvents)
+        })
+        .catch(() => {
+          return { name: 'NetworkError' }
+        })
     }
   }
 }
@@ -104,5 +147,8 @@ export default {
 
 #page-next {
   text-align: right;
+}
+.search-box {
+  width: 300px;
 }
 </style>
